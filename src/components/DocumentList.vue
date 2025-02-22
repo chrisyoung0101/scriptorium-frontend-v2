@@ -3,7 +3,7 @@
       <h1>Documents</h1>
       <ul>
         <li v-for="document in documents" :key="document.id" @click="selectDocument(document)">
-          <strong>{{ document.title }}</strong> - {{ document.name }}
+          <strong>{{ document.title }}</strong> - {{ document.name }} ({{ document.type }})
         </li>
       </ul>
   
@@ -13,6 +13,7 @@
         <p><strong>Type:</strong> {{ selectedDocument.type }}</p>
         <p><strong>Content:</strong></p>
         <p>{{ selectedDocument.content || 'No content available.' }}</p>
+        <p v-if="selectedDocument.parentId"><strong>Parent ID:</strong> {{ selectedDocument.parentId }}</p>
         <button @click="selectedDocument = null">Back to List</button>
       </div>
     </div>
@@ -46,7 +47,7 @@
       },
     },
   };
-  </script>  
+  </script>
   
   <style scoped>
   ul {
