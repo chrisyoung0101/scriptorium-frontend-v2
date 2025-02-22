@@ -36,7 +36,7 @@ h1 {
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api', // Backend base URL
+  baseURL: 'http://localhost:8081/api', // Updated backend base URL to correct port
 });
 
 export default api;
@@ -48,17 +48,16 @@ export default api;
       <h1>Documents</h1>
       <ul>
         <li v-for="document in documents" :key="document.id" @click="selectDocument(document)">
-          <strong>{{ document.title }}</strong> - {{ document.summary }}
+          <strong>{{ document.title }}</strong> - {{ document.name }}
         </li>
       </ul>
   
       <div v-if="selectedDocument" class="document-details">
         <h2>{{ selectedDocument.title }}</h2>
-        <p><strong>Author:</strong> {{ selectedDocument.author }}</p>
-        <p><strong>Category:</strong> {{ selectedDocument.category }}</p>
-        <p><strong>Published:</strong> {{ formatDate(selectedDocument.publishedAt) }}</p>
+        <p><strong>Name:</strong> {{ selectedDocument.name }}</p>
+        <p><strong>Type:</strong> {{ selectedDocument.type }}</p>
         <p><strong>Content:</strong></p>
-        <p>{{ selectedDocument.content }}</p>
+        <p>{{ selectedDocument.content || 'No content available.' }}</p>
         <button @click="selectedDocument = null">Back to List</button>
       </div>
     </div>
@@ -89,9 +88,6 @@ export default api;
       },
       selectDocument(document) {
         this.selectedDocument = document;
-      },
-      formatDate(dateStr) {
-        return new Date(dateStr).toLocaleDateString();
       },
     },
   };
