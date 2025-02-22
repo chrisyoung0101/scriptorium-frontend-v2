@@ -1,0 +1,227 @@
+--- App.vue (/Users/chrisyoung/scriptorium-frontend-v2/src/App.vue) ---
+<template>
+  <div id="app">
+    <h1>Scriptorium</h1>
+    <DocumentForm />
+    <hr />
+    <DocumentList />
+  </div>
+</template>
+
+<script>
+import DocumentList from './components/DocumentList.vue';
+import DocumentForm from './components/DocumentForm.vue';
+
+export default {
+  name: 'App',
+  components: {
+    DocumentList,
+    DocumentForm,
+  },
+};
+</script>
+
+<style>
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  padding: 20px;
+}
+h1 {
+  text-align: center;
+}
+</style>
+
+
+--- api.js (/Users/chrisyoung/scriptorium-frontend-v2/src/services/api.js) ---
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:8080/api', // Backend base URL
+});
+
+export default api;
+
+
+--- DocumentList.vue (/Users/chrisyoung/scriptorium-frontend-v2/src/components/DocumentList.vue) ---
+<template>
+    <div>
+      <h1>Documents</h1>
+      <ul>
+        <li v-for="document in documents" :key="document.id" @click="selectDocument(document)">
+          <strong>{{ document.title }}</strong> - {{ document.summary }}
+        </li>
+      </ul>
+  
+      <div v-if="selectedDocument" class="document-details">
+        <h2>{{ selectedDocument.title }}</h2>
+        <p><strong>Author:</strong> {{ selectedDocument.author }}</p>
+        <p><strong>Category:</strong> {{ selectedDocument.category }}</p>
+        <p><strong>Published:</strong> {{ formatDate(selectedDocument.publishedAt) }}</p>
+        <p><strong>Content:</strong></p>
+        <p>{{ selectedDocument.content }}</p>
+        <button @click="selectedDocument = null">Back to List</button>
+      </div>
+    </div>
+  </template>
+  
+  <script>
+  import api from '../services/api';
+  
+  export default {
+    name: 'DocumentList',
+    data() {
+      return {
+        documents: [],
+        selectedDocument: null,
+      };
+    },
+    mounted() {
+      this.fetchDocuments();
+    },
+    methods: {
+      async fetchDocuments() {
+        try {
+          const response = await api.get('/documents');
+          this.documents = response.data;
+        } catch (error) {
+          console.error('Error fetching documents:', error);
+        }
+      },
+      selectDocument(document) {
+        this.selectedDocument = document;
+      },
+      formatDate(dateStr) {
+        return new Date(dateStr).toLocaleDateString();
+      },
+    },
+  };
+  </script>
+  
+  <style scoped>
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  li {
+    cursor: pointer;
+    padding: 8px;
+    border-bottom: 1px solid #ccc;
+  }
+  li:hover {
+    background-color: #f0f0f0;
+  }
+  .document-details {
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+    padding-top: 10px;
+  }
+  </style>
+  
+
+--- DocumentForm.vue (/Users/chrisyoung/scriptorium-frontend-v2/src/components/DocumentForm.vue) ---
+<template>
+    <div>
+      <h2>Create New Document</h2>
+      <form @submit.prevent="createDocument">
+        <div>
+          <label>Title:</label>
+          <input v-model="document.title" required />
+        </div>
+  
+        <div>
+          <label>Author:</label>
+          <input v-model="document.author" required />
+        </div>
+  
+        <div>
+          <label>Category:</label>
+          <input v-model="document.category" />
+        </div>
+  
+        <div>
+          <label>Summary:</label>
+          <input v-model="document.summary" />
+        </div>
+  
+        <div>
+          <label>Content:</label>
+          <textarea v-model="document.content" required></textarea>
+        </div>
+  
+        <div>
+          <label>Published At:</label>
+          <input type="date" v-model="document.publishedAt" />
+        </div>
+  
+        <button type="submit">Create Document</button>
+      </form>
+    </div>
+  </template>
+  
+  <script>
+  import api from '../services/api';
+  
+  export default {
+    name: 'DocumentForm',
+    data() {
+      return {
+        document: {
+          title: '',
+          author: '',
+          content: '',
+          summary: '',
+          category: '',
+          publishedAt: '',
+        },
+      };
+    },
+    methods: {
+      async createDocument() {
+        try {
+          // Format publishedAt to ISO 8601 format (if provided)
+          const payload = { ...this.document };
+          if (payload.publishedAt) {
+            payload.publishedAt = `${payload.publishedAt}T00:00:00`; // Append time for LocalDateTime
+          }
+  
+          // Send POST request to backend
+          await api.post('/documents', payload);
+          alert('Document created successfully!');
+          this.resetForm();
+        } catch (error) {
+          // Enhanced error logging
+          console.error('Error creating document:', error.response?.data || error);
+          alert(`Failed to create document. ${error.response?.data?.message || error.message}`);
+        }
+      },
+      resetForm() {
+        this.document = {
+          title: '',
+          author: '',
+          content: '',
+          summary: '',
+          category: '',
+          publishedAt: '',
+        };
+      },
+    },
+  };
+  </script>
+  
+  
+  
+  <style scoped>
+  form div {
+    margin-bottom: 10px;
+  }
+  input, textarea {
+    width: 100%;
+    padding: 5px;
+    box-sizing: border-box;
+  }
+  button {
+    padding: 8px 16px;
+  }
+  </style>
+  
+

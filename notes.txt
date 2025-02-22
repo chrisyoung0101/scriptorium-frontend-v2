@@ -1,0 +1,14 @@
+
+
+
+
+/Users/chrisyoung/scriptorium-frontend-v2
+
+App.vue, api.js, DocumentList.vue, DocumentForm.vue 
+
+
+You can run it like this: 
+git_init_push.sh /path/to/your/project
+
+
+git_init_push.sh /Users/chrisyoung/scriptorium-frontend-v2
