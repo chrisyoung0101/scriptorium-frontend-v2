@@ -1,9 +1,9 @@
 <template>
   <div id="app">
     <h1>Scriptorium</h1>
-    <DocumentForm />
+    <DocumentForm @documentCreated="refreshDocuments" />
     <hr />
-    <DocumentList />
+    <DocumentList ref="docList" />
   </div>
 </template>
 
@@ -17,8 +17,14 @@ export default {
     DocumentList,
     DocumentForm,
   },
+  methods: {
+    refreshDocuments(newDoc) {
+      this.$refs.docList.fetchDocuments(); // Refresh document list
+    },
+  },
 };
 </script>
+
 
 <style>
 #app {

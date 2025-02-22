@@ -46,7 +46,7 @@
       },
     },
   };
-  </script>
+  </script>  
   
   <style scoped>
   ul {

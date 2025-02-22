@@ -45,47 +45,53 @@
     data() {
       return {
         document: {
+          name: '',         // Add this field
           title: '',
-          author: '',
           content: '',
-          summary: '',
-          category: '',
-          publishedAt: '',
+          type: 'FILE',     // Default to FILE, could also be FOLDER
+          parent: null      // For root-level documents
         },
       };
     },
     methods: {
       async createDocument() {
         try {
-          // Format publishedAt to ISO 8601 format (if provided)
-          const payload = { ...this.document };
-          if (payload.publishedAt) {
-            payload.publishedAt = `${payload.publishedAt}T00:00:00`; // Append time for LocalDateTime
-          }
+          // Prepare payload
+          const payload = {
+            name: this.document.name || this.document.title.replace(/\s+/g, '_').toLowerCase(), // Auto-generate name if empty
+            title: this.document.title,
+            content: this.document.content,
+            type: this.document.type,
+            parent: this.document.parent
+          };
   
-          // Send POST request to backend
-          await api.post('/documents', payload);
+          // Send POST request
+          const response = await api.post('/documents', payload);
           alert('Document created successfully!');
+  
+          // Clear form
           this.resetForm();
+  
+          // Optionally, emit event to refresh document list
+          this.$emit('documentCreated', response.data);
         } catch (error) {
-          // Enhanced error logging
           console.error('Error creating document:', error.response?.data || error);
           alert(`Failed to create document. ${error.response?.data?.message || error.message}`);
         }
       },
       resetForm() {
         this.document = {
+          name: '',
           title: '',
-          author: '',
           content: '',
-          summary: '',
-          category: '',
-          publishedAt: '',
+          type: 'FILE',
+          parent: null
         };
       },
     },
   };
   </script>
+  
   
   
   
