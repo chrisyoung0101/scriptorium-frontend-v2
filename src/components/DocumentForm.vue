@@ -52,6 +52,13 @@
       };
     },
     methods: {
+      // ✅ Helper function to URL-encode the payload
+      encodePayload(obj) {
+        return Object.keys(obj)
+          .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]))
+          .join('&');
+      },
+  
       async createDocument() {
         try {
           // Generate name if empty
@@ -63,17 +70,16 @@
             title: this.document.title,
             content: this.document.content,
             type: this.document.type,
-            parent: this.document.parentId ? { id: this.document.parentId } : null
+            parent: this.document.parentId ? this.document.parentId : ''
           };
   
-          // POST request to backend
-          const response = await api.post('/documents', payload, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        }
-                    });
-
+          // ✅ POST request with URL-encoded payload
+          const response = await api.post('/documents', this.encodePayload(payload), {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'  // ✅ Simple Content-Type to bypass preflight
+            }
+          });
+  
           alert('Document created successfully!');
   
           // Clear form
@@ -86,6 +92,7 @@
           alert(`Failed to create document. ${error.response?.data?.message || error.message}`);
         }
       },
+  
       resetForm() {
         this.document = {
           name: '',
