@@ -17,7 +17,7 @@ exports.handler = async (event) => {
         'Accept-Encoding': 'identity', // Force uncompressed response
       },
       secureProtocol: 'TLSv1_2_method',
-      rejectUnauthorized: false, // For debugging, set to true in prod
+      rejectUnauthorized: false, // Set to true in production
     };
 
     const req = https.request(options, (res) => {
@@ -25,8 +25,12 @@ exports.handler = async (event) => {
 
       res.on('data', (chunk) => (body += chunk));
       res.on('end', () => {
-        console.log(`API Response: ${res.statusCode}`);
-        console.log(`Response Body: ${body}`);  // Log full response body
+        // Enhanced Logging
+        console.log('====== Render API Response ======');
+        console.log('Response Status:', res.statusCode);
+        console.log('Response Headers:', res.headers);
+        console.log('Response Body:', body);
+        console.log('=================================');
 
         resolve({
           statusCode: res.statusCode,
@@ -40,7 +44,7 @@ exports.handler = async (event) => {
     });
 
     req.on('error', (err) => {
-      console.error(`Proxy Error: ${err.message}`);
+      console.error('Proxy Error:', err); // Log proxy errors
       resolve({
         statusCode: 500,
         body: JSON.stringify({ message: err.message }),
