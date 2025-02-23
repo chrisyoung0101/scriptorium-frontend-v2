@@ -67,7 +67,13 @@
           };
   
           // POST request to backend
-          const response = await api.post('/documents', payload);
+          const response = await api.post('/documents', payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        }
+                    });
+
           alert('Document created successfully!');
   
           // Clear form
