@@ -3,7 +3,6 @@ const { URL } = require('url');
 
 exports.handler = async (event) => {
   const targetURL = `https://scriptorium-api.onrender.com${event.path.replace('/api', '')}`;
-  console.log(`🔄 Proxying request to: ${targetURL}`);
 
   return new Promise((resolve) => {
     const url = new URL(targetURL);
@@ -14,33 +13,33 @@ exports.handler = async (event) => {
       method: event.httpMethod,
       headers: {
         ...event.headers,
-        'host': url.hostname,
-        'origin': 'https://scriptorium-v2.netlify.app', // Ensure correct origin header
+        host: url.hostname,
+        'Accept-Encoding': 'identity' // Force uncompressed response
       },
-      timeout: 5000, // Set timeout to prevent hanging
+      secureProtocol: 'TLSv1_2_method',
+      rejectUnauthorized: false, // For debugging, set to true in prod
     };
 
     const req = https.request(options, (res) => {
       let body = '';
+
       res.on('data', (chunk) => (body += chunk));
       res.on('end', () => {
-        console.log(`✅ API Response: ${res.statusCode}`);
         resolve({
           statusCode: res.statusCode,
           body,
           headers: {
-            'Content-Type': res.headers['content-type'] || 'application/json',
-            'Access-Control-Allow-Origin': '*', // Handle CORS
+            ...res.headers,
+            'access-control-allow-origin': '*', // Ensure CORS
           },
         });
       });
     });
 
     req.on('error', (err) => {
-      console.error(`❌ Proxy Error: ${err.message}`);
       resolve({
-        statusCode: 502,
-        body: JSON.stringify({ message: `Proxy error: ${err.message}` }),
+        statusCode: 500,
+        body: JSON.stringify({ message: err.message }),
       });
     });
 
