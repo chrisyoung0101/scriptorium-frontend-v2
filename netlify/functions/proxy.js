@@ -25,12 +25,9 @@ exports.handler = async (event) => {
 
       res.on('data', (chunk) => (body += chunk));
       res.on('end', () => {
-        // Enhanced Logging
-        console.log('====== Render API Response ======');
         console.log('Response Status:', res.statusCode);
         console.log('Response Headers:', res.headers);
-        console.log('Response Body:', body);
-        console.log('=================================');
+        console.log('Response Body:', body); // Log full response body
 
         resolve({
           statusCode: res.statusCode,
@@ -44,7 +41,7 @@ exports.handler = async (event) => {
     });
 
     req.on('error', (err) => {
-      console.error('Proxy Error:', err); // Log proxy errors
+      console.error('Proxy Error:', err); // Log any proxy errors
       resolve({
         statusCode: 500,
         body: JSON.stringify({ message: err.message }),
