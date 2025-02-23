@@ -4,6 +4,8 @@ const { URL } = require('url');
 exports.handler = async (event) => {
   const targetURL = `https://scriptorium-api.onrender.com${event.path.replace('/api', '')}`;
   console.log(`Proxying request to: ${targetURL}`);
+  console.log(`Incoming method: ${event.httpMethod}`);
+  console.log(`Headers: ${JSON.stringify(event.headers)}`);
 
   return new Promise((resolve) => {
     const url = new URL(targetURL);
@@ -13,13 +15,12 @@ exports.handler = async (event) => {
       path: url.pathname + url.search,
       method: event.httpMethod,
       headers: {
-        'Content-Type': event.headers['content-type'] || 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'Netlify-Proxy',
-        'Accept-Encoding': 'identity' // To avoid compression issues
+        ...event.headers,
+        host: url.hostname,
+        'Accept-Encoding': 'identity' // Force uncompressed response
       },
       secureProtocol: 'TLSv1_2_method',
-      rejectUnauthorized: false, // For debugging; set to true in production
+      rejectUnauthorized: false, // For debugging, set to true in prod
     };
 
     const req = https.request(options, (res) => {
@@ -27,31 +28,29 @@ exports.handler = async (event) => {
 
       res.on('data', (chunk) => (body += chunk));
       res.on('end', () => {
-        console.log(`API Response: ${res.statusCode}`);
+        console.log(`Received response with status: ${res.statusCode}`);
         resolve({
           statusCode: res.statusCode,
           body,
           headers: {
-            'access-control-allow-origin': '*', // Allow CORS
-            'content-type': res.headers['content-type'] || 'application/json',
+            ...res.headers,
+            'access-control-allow-origin': '*', // Ensure CORS
           },
         });
       });
     });
 
     req.on('error', (err) => {
-      console.error('Proxy Error:', err.message);
+      console.error(`Error during proxy request: ${err.message}`);
       resolve({
         statusCode: 500,
         body: JSON.stringify({ message: err.message }),
       });
     });
 
-    // Forward body if present
     if (event.body) {
       req.write(event.body);
     }
-
     req.end();
   });
 };
