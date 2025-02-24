@@ -2,6 +2,21 @@ const https = require('https');
 const { URL } = require('url');
 
 exports.handler = async (event) => {
+  // Handle preflight OPTIONS request directly
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400', // Cache preflight response
+      },
+      body: '',
+    };
+  }
+
+  // Proxy request to the Render API
   const targetURL = `https://scriptorium-api.onrender.com${event.path.replace('/api', '')}`;
 
   return new Promise((resolve) => {
@@ -14,10 +29,10 @@ exports.handler = async (event) => {
       headers: {
         ...event.headers,
         host: url.hostname,
-        'Accept-Encoding': 'identity' // Avoid compression issues
+        'Accept-Encoding': 'identity', // Ensure uncompressed response
       },
       secureProtocol: 'TLSv1_2_method',
-      rejectUnauthorized: false, // For debugging (set to true in prod)
+      rejectUnauthorized: false, // For debugging, set to true in prod
     };
 
     const req = https.request(options, (res) => {
@@ -25,26 +40,21 @@ exports.handler = async (event) => {
 
       res.on('data', (chunk) => (body += chunk));
       res.on('end', () => {
-        // ✅ Log the full response here
-        console.log("====== Render API Response ======");
-        console.log(`Response Status: ${res.statusCode}`);
-        console.log("Response Headers:", res.headers);
-        console.log("Response Body:", body);
-        console.log("=================================");
+        console.log('API Response:', res.statusCode, body); // Log full response for debugging
 
         resolve({
           statusCode: res.statusCode,
           body,
           headers: {
             ...res.headers,
-            'access-control-allow-origin': '*', // Ensure CORS
+            'Access-Control-Allow-Origin': '*', // Ensure CORS for frontend
           },
         });
       });
     });
 
     req.on('error', (err) => {
-      console.error("Proxy Error:", err.message);
+      console.error('Proxy Error:', err.message);
       resolve({
         statusCode: 500,
         body: JSON.stringify({ message: err.message }),
