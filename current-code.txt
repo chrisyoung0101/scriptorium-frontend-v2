@@ -40,10 +40,26 @@ h1 {
 
 --- api.js (/Users/chrisyoung/scriptorium-frontend-v2/src/services/api.js) ---
 import axios from 'axios';
+import qs from 'qs'; // For serializing data into x-www-form-urlencoded format
 
+// Create Axios instance with Netlify proxy
 const api = axios.create({
-  baseURL: '/api',  // ✅ Uses Netlify proxy
+  baseURL: '/api', // ✅ Uses Netlify proxy (_redirects handles this)
+  headers: {
+    'Content-Type': 'application/json', // Default for GET requests
+  },
 });
+
+// Helper method for POST with URL-encoded data
+export const postUrlEncoded = async (url, data) => {
+  const serializedData = qs.stringify(data); // Convert JSON to x-www-form-urlencoded
+
+  return api.post(url, serializedData, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded', // Override Content-Type
+    },
+  });
+};
 
 export default api;
 
@@ -54,7 +70,7 @@ export default api;
       <h1>Documents</h1>
       <ul>
         <li v-for="document in documents" :key="document.id" @click="selectDocument(document)">
-          <strong>{{ document.title }}</strong> - {{ document.name }}
+          <strong>{{ document.title }}</strong> - {{ document.name }} ({{ document.type }})
         </li>
       </ul>
   
@@ -64,6 +80,7 @@ export default api;
         <p><strong>Type:</strong> {{ selectedDocument.type }}</p>
         <p><strong>Content:</strong></p>
         <p>{{ selectedDocument.content || 'No content available.' }}</p>
+        <p v-if="selectedDocument.parentId"><strong>Parent ID:</strong> {{ selectedDocument.parentId }}</p>
         <button @click="selectedDocument = null">Back to List</button>
       </div>
     </div>
@@ -97,7 +114,7 @@ export default api;
       },
     },
   };
-  </script>  
+  </script>
   
   <style scoped>
   ul {
@@ -131,18 +148,8 @@ export default api;
         </div>
   
         <div>
-          <label>Author:</label>
-          <input v-model="document.author" required />
-        </div>
-  
-        <div>
-          <label>Category:</label>
-          <input v-model="document.category" />
-        </div>
-  
-        <div>
-          <label>Summary:</label>
-          <input v-model="document.summary" />
+          <label>Name (optional):</label>
+          <input v-model="document.name" placeholder="Auto-generated if left empty" />
         </div>
   
         <div>
@@ -151,8 +158,16 @@ export default api;
         </div>
   
         <div>
-          <label>Published At:</label>
-          <input type="date" v-model="document.publishedAt" />
+          <label>Type:</label>
+          <select v-model="document.type">
+            <option value="FILE">File</option>
+            <option value="FOLDER">Folder</option>
+          </select>
+        </div>
+  
+        <div>
+          <label>Parent ID (optional):</label>
+          <input v-model="document.parentId" placeholder="For nested documents" />
         </div>
   
         <button type="submit">Create Document</button>
@@ -168,61 +183,74 @@ export default api;
     data() {
       return {
         document: {
-          name: '',         // Add this field
+          name: '',
           title: '',
           content: '',
-          type: 'FILE',     // Default to FILE, could also be FOLDER
-          parent: null      // For root-level documents
+          type: 'FILE',  // Default type
+          parentId: null // For nesting under a parent
         },
       };
     },
     methods: {
+      // ✅ Helper function to URL-encode the payload
+      encodePayload(obj) {
+        return Object.keys(obj)
+          .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]))
+          .join('&');
+      },
+  
       async createDocument() {
         try {
-          // Prepare payload
+          // Generate name if empty
+          const generatedName = this.document.name || this.document.title.replace(/\s+/g, '_').toLowerCase();
+  
+          // Build payload
           const payload = {
-            name: this.document.name || this.document.title.replace(/\s+/g, '_').toLowerCase(), // Auto-generate name if empty
+            name: generatedName,
             title: this.document.title,
             content: this.document.content,
             type: this.document.type,
-            parent: this.document.parent
+            parent: this.document.parentId ? this.document.parentId : ''
           };
   
-          // Send POST request
-          const response = await api.post('/documents', payload);
+          // ✅ POST request with URL-encoded payload
+          const response = await api.post('/documents', this.encodePayload(payload), {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'  // ✅ Simple Content-Type to bypass preflight
+            }
+          });
+  
           alert('Document created successfully!');
   
           // Clear form
           this.resetForm();
   
-          // Optionally, emit event to refresh document list
+          // Notify parent to refresh list
           this.$emit('documentCreated', response.data);
         } catch (error) {
           console.error('Error creating document:', error.response?.data || error);
           alert(`Failed to create document. ${error.response?.data?.message || error.message}`);
         }
       },
+  
       resetForm() {
         this.document = {
           name: '',
           title: '',
           content: '',
           type: 'FILE',
-          parent: null
+          parentId: null
         };
       },
     },
   };
   </script>
   
-  
-  
-  
   <style scoped>
   form div {
     margin-bottom: 10px;
   }
-  input, textarea {
+  input, textarea, select {
     width: 100%;
     padding: 5px;
     box-sizing: border-box;
@@ -232,4 +260,87 @@ export default api;
   }
   </style>
   
+
+--- _redirects (/Users/chrisyoung/scriptorium-frontend-v2/public/_redirects) ---
+/api/*  /.netlify/functions/proxy/:splat  200
+
+
+--- _headers (/Users/chrisyoung/scriptorium-frontend-v2/public/_headers) ---
+/*  
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+  Access-Control-Allow-Headers: Origin, Content-Type, Accept, Authorization, X-Requested-With
+
+
+--- proxy.js (/Users/chrisyoung/scriptorium-frontend-v2/netlify/functions/proxy.js) ---
+const https = require('https');
+const { URL } = require('url');
+
+exports.handler = async (event) => {
+  // Handle preflight OPTIONS request directly
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400', // Cache preflight response
+      },
+      body: '',
+    };
+  }
+
+  // Proxy request to the Render API
+  const targetURL = `https://scriptorium-api.onrender.com${event.path.replace('/api', '')}`;
+
+  return new Promise((resolve) => {
+    const url = new URL(targetURL);
+
+    const options = {
+      hostname: url.hostname,
+      path: url.pathname + url.search,
+      method: event.httpMethod,
+      headers: {
+        ...event.headers,
+        host: url.hostname,
+        'Accept-Encoding': 'identity', // Ensure uncompressed response
+      },
+      secureProtocol: 'TLSv1_2_method',
+      rejectUnauthorized: false, // For debugging, set to true in prod
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+
+      res.on('data', (chunk) => (body += chunk));
+      res.on('end', () => {
+        console.log('API Response:', res.statusCode, body); // Log full response for debugging
+
+        resolve({
+          statusCode: res.statusCode,
+          body,
+          headers: {
+            ...res.headers,
+            'Access-Control-Allow-Origin': '*', // Ensure CORS for frontend
+          },
+        });
+      });
+    });
+
+    req.on('error', (err) => {
+      console.error('Proxy Error:', err.message);
+      resolve({
+        statusCode: 500,
+        body: JSON.stringify({ message: err.message }),
+      });
+    });
+
+    if (event.body) {
+      req.write(event.body);
+    }
+    req.end();
+  });
+};
+
 

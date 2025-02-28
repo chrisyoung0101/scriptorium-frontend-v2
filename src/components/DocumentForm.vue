@@ -52,44 +52,44 @@
       };
     },
     methods: {
-      // ✅ Helper function to URL-encode the payload
-      encodePayload(obj) {
-        return Object.keys(obj)
-          .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]))
-          .join('&');
-      },
-  
       async createDocument() {
         try {
           // Generate name if empty
-          const generatedName = this.document.name || this.document.title.replace(/\s+/g, '_').toLowerCase();
+          const generatedName =
+            this.document.name ||
+            this.document.title.replace(/\s+/g, '_').toLowerCase();
   
-          // Build payload
+          // Build payload as a JSON object
           const payload = {
             name: generatedName,
             title: this.document.title,
             content: this.document.content,
             type: this.document.type,
-            parent: this.document.parentId ? this.document.parentId : ''
+            parent: this.document.parentId ? this.document.parentId : null,
           };
   
-          // ✅ POST request with URL-encoded payload
-          const response = await api.post('/documents', this.encodePayload(payload), {
+          // POST request with JSON payload
+          const response = await api.post('/documents', payload, {
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'  // ✅ Simple Content-Type to bypass preflight
-            }
+              'Content-Type': 'application/json',
+            },
           });
   
           alert('Document created successfully!');
-  
-          // Clear form
           this.resetForm();
   
           // Notify parent to refresh list
           this.$emit('documentCreated', response.data);
         } catch (error) {
-          console.error('Error creating document:', error.response?.data || error);
-          alert(`Failed to create document. ${error.response?.data?.message || error.message}`);
+          console.error(
+            'Error creating document:',
+            error.response?.data || error
+          );
+          alert(
+            `Failed to create document. ${
+              error.response?.data?.message || error.message
+            }`
+          );
         }
       },
   
@@ -99,7 +99,7 @@
           title: '',
           content: '',
           type: 'FILE',
-          parentId: null
+          parentId: null,
         };
       },
     },
@@ -110,7 +110,9 @@
   form div {
     margin-bottom: 10px;
   }
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     width: 100%;
     padding: 5px;
     box-sizing: border-box;

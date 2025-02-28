@@ -4,7 +4,7 @@
 
 /Users/chrisyoung/scriptorium-frontend-v2
 
-App.vue, api.js, DocumentList.vue, DocumentForm.vue 
+App.vue, api.js, DocumentList.vue, DocumentForm.vue, _redirects, _headers, proxy.js
 
 
 You can run it like this: 
