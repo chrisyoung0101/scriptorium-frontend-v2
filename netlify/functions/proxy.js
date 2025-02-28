@@ -1,3 +1,4 @@
+// netlify/functions/proxy.js
 const https = require('https');
 const { URL } = require('url');
 
@@ -16,8 +17,9 @@ exports.handler = async (event) => {
     };
   }
 
-  // Proxy request to the Render API
-  const targetURL = `https://scriptorium-api.onrender.com${event.path.replace('/api', '')}`;
+  // Update: Prepend "/api" to the path when proxying
+  // e.g. /api/documents becomes /api/documents on the target
+  const targetURL = `https://scriptorium-api.onrender.com/api${event.path.replace('/api', '')}`;
 
   return new Promise((resolve) => {
     const url = new URL(targetURL);
@@ -32,7 +34,7 @@ exports.handler = async (event) => {
         'Accept-Encoding': 'identity', // Ensure uncompressed response
       },
       secureProtocol: 'TLSv1_2_method',
-      rejectUnauthorized: false, // For debugging, set to true in prod
+      rejectUnauthorized: false, // For debugging; set to true in production if possible
     };
 
     const req = https.request(options, (res) => {
