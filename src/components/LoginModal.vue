@@ -20,8 +20,6 @@
   </template>
   
   <script>
-  import api from '../services/api';
-  
   export default {
     name: 'LoginModal',
     data() {
@@ -29,28 +27,21 @@
         username: '',
         password: '',
         errorMessage: '',
+        // Set your initial/default credentials (for demonstration purposes only)
+        defaultUsername: 'admin',
+        defaultPassword: 'password123',
       };
     },
     methods: {
       async login() {
-        try {
-          // If you have an authentication API endpoint, you could call it here.
-          // Example:
-          // const response = await api.post('/login', { username: this.username, password: this.password });
-          // localStorage.setItem('authToken', response.data.token);
-  
-          // For demonstration, we'll simulate a successful login if both fields are filled.
-          if (this.username && this.password) {
-            // Store a dummy token in localStorage
-            localStorage.setItem('authToken', 'dummy-token');
-            // Emit event to notify parent component that authentication succeeded
-            this.$emit('authenticated');
-          } else {
-            this.errorMessage = 'Please enter both username and password.';
-          }
-        } catch (error) {
-          console.error('Login error:', error);
-          this.errorMessage = 'Login failed. Please check your credentials.';
+        // For demo purposes: check the credentials against the defaults.
+        if (this.username === this.defaultUsername && this.password === this.defaultPassword) {
+          // Store a dummy token in localStorage
+          localStorage.setItem('authToken', 'dummy-token');
+          // Emit event to notify parent component that authentication succeeded
+          this.$emit('authenticated');
+        } else {
+          this.errorMessage = 'Invalid credentials. Please try again.';
         }
       },
     },
