@@ -6,7 +6,11 @@
     
     <!-- Show main content if authenticated -->
     <div v-else>
-      <h1>Scriptorium</h1>
+      <header>
+        <h1>Scriptorium</h1>
+        <!-- Logout Button -->
+        <button @click="logout">Logout</button>
+      </header>
       <DocumentForm @documentCreated="refreshDocuments" />
       <hr />
       <DocumentList ref="docList" />
@@ -45,6 +49,12 @@ export default {
     refreshDocuments(newDoc) {
       this.$refs.docList.fetchDocuments(); // Refresh document list
     },
+    logout() {
+      // Remove the token from localStorage
+      localStorage.removeItem('authToken');
+      // Set authentication flag to false to trigger the login modal
+      this.isAuthenticated = false;
+    },
   },
 };
 </script>
@@ -54,7 +64,16 @@ export default {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   padding: 20px;
 }
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 h1 {
   text-align: center;
+}
+button {
+  padding: 8px 16px;
+  cursor: pointer;
 }
 </style>
