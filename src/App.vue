@@ -1,79 +1,85 @@
-<!-- src/App.vue -->
+<!-- src/components/DocumentList.vue -->
 <template>
-  <div id="app">
-    <!-- Show Login Modal if the user is not authenticated -->
-    <LoginModal v-if="!isAuthenticated" @authenticated="handleAuthenticated" />
-    
-    <!-- Show main content if authenticated -->
-    <div v-else>
-      <header>
-        <h1>Scriptorium</h1>
-        <!-- Logout Button -->
-        <button @click="logout">Logout</button>
-      </header>
-      <DocumentForm @documentCreated="refreshDocuments" />
-      <hr />
-      <DocumentList ref="docList" />
+  <div>
+    <h1>Documents</h1>
+    <ul>
+      <li v-for="document in documents" :key="document.id" @click="selectDocument(document)">
+        <strong>{{ document.title }}</strong> - {{ document.name }} ({{ document.type }})
+      </li>
+    </ul>
+
+    <div v-if="selectedDocument" class="document-details">
+      <h2>{{ selectedDocument.title }}</h2>
+      <p><strong>Name:</strong> {{ selectedDocument.name }}</p>
+      <p><strong>Type:</strong> {{ selectedDocument.type }}</p>
+      <p><strong>Content:</strong></p>
+      <!-- Render Markdown-formatted content -->
+      <div v-html="formattedContent"></div>
+      <p v-if="selectedDocument.parentId">
+        <strong>Parent ID:</strong> {{ selectedDocument.parentId }}
+      </p>
+      <button @click="selectedDocument = null">Back to List</button>
     </div>
   </div>
 </template>
 
 <script>
-import DocumentList from './components/DocumentList.vue';
-import DocumentForm from './components/DocumentForm.vue';
-import LoginModal from './components/LoginModal.vue';
+import api from '../services/api';
+import { marked } from 'marked';  // Import the marked library
 
 export default {
-  name: 'App',
-  components: {
-    DocumentList,
-    DocumentForm,
-    LoginModal,
-  },
+  name: 'DocumentList',
   data() {
     return {
-      isAuthenticated: false,
+      documents: [],
+      selectedDocument: null,
     };
   },
-  created() {
-    // Check for an auth token in localStorage (or any other storage you use)
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      this.isAuthenticated = true;
-    }
+  mounted() {
+    this.fetchDocuments();
+  },
+  computed: {
+    formattedContent() {
+      // If no content is available, return a placeholder wrapped in HTML
+      if (!this.selectedDocument || !this.selectedDocument.content) {
+        return '<p>No content available.</p>';
+      }
+      // Convert the raw Markdown into HTML
+      return marked(this.selectedDocument.content);
+    },
   },
   methods: {
-    handleAuthenticated() {
-      this.isAuthenticated = true;
+    async fetchDocuments() {
+      try {
+        const response = await api.get('/documents');
+        this.documents = response.data;
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+      }
     },
-    refreshDocuments(newDoc) {
-      this.$refs.docList.fetchDocuments(); // Refresh document list
-    },
-    logout() {
-      // Remove the token from localStorage
-      localStorage.removeItem('authToken');
-      // Set authentication flag to false to trigger the login modal
-      this.isAuthenticated = false;
+    selectDocument(document) {
+      this.selectedDocument = document;
     },
   },
 };
 </script>
 
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  padding: 20px;
+<style scoped>
+ul {
+  list-style-type: none;
+  padding: 0;
 }
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-h1 {
-  text-align: center;
-}
-button {
-  padding: 8px 16px;
+li {
   cursor: pointer;
+  padding: 8px;
+  border-bottom: 1px solid #ccc;
+}
+li:hover {
+  background-color: #f0f0f0;
+}
+.document-details {
+  margin-top: 20px;
+  border-top: 1px solid #ccc;
+  padding-top: 10px;
 }
 </style>
