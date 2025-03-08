@@ -1,85 +1,78 @@
-<!-- src/components/DocumentList.vue -->
+<!-- src/App.vue -->
 <template>
-  <div>
-    <h1>Documents</h1>
-    <ul>
-      <li v-for="document in documents" :key="document.id" @click="selectDocument(document)">
-        <strong>{{ document.title }}</strong> - {{ document.name }} ({{ document.type }})
-      </li>
-    </ul>
-
-    <div v-if="selectedDocument" class="document-details">
-      <h2>{{ selectedDocument.title }}</h2>
-      <p><strong>Name:</strong> {{ selectedDocument.name }}</p>
-      <p><strong>Type:</strong> {{ selectedDocument.type }}</p>
-      <p><strong>Content:</strong></p>
-      <!-- Render Markdown-formatted content -->
-      <div v-html="formattedContent"></div>
-      <p v-if="selectedDocument.parentId">
-        <strong>Parent ID:</strong> {{ selectedDocument.parentId }}
-      </p>
-      <button @click="selectedDocument = null">Back to List</button>
+  <div id="app">
+    <!-- Show Login Modal if the user is not authenticated -->
+    <LoginModal v-if="!isAuthenticated" @authenticated="handleAuthenticated" />
+    
+    <!-- Show main content if authenticated -->
+    <div v-else>
+      <header>
+        <h1>Scriptorium</h1>
+        <!-- Logout Button -->
+        <button @click="logout">Logout</button>
+      </header>
+      <DocumentForm @documentCreated="refreshDocuments" />
+      <hr />
+      <DocumentList ref="docList" />
     </div>
   </div>
 </template>
 
 <script>
-import api from '../services/api';
-import { marked } from 'marked';  // Import the marked library
+import DocumentList from './components/DocumentList.vue';
+import DocumentForm from './components/DocumentForm.vue';
+import LoginModal from './components/LoginModal.vue';
 
 export default {
-  name: 'DocumentList',
+  name: 'App',
+  components: {
+    DocumentList,
+    DocumentForm,
+    LoginModal,
+  },
   data() {
     return {
-      documents: [],
-      selectedDocument: null,
+      isAuthenticated: false,
     };
   },
-  mounted() {
-    this.fetchDocuments();
-  },
-  computed: {
-    formattedContent() {
-      // If no content is available, return a placeholder wrapped in HTML
-      if (!this.selectedDocument || !this.selectedDocument.content) {
-        return '<p>No content available.</p>';
-      }
-      // Convert the raw Markdown into HTML
-      return marked(this.selectedDocument.content);
-    },
+  created() {
+    // Check for an auth token in localStorage
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      this.isAuthenticated = true;
+    }
   },
   methods: {
-    async fetchDocuments() {
-      try {
-        const response = await api.get('/documents');
-        this.documents = response.data;
-      } catch (error) {
-        console.error('Error fetching documents:', error);
-      }
+    handleAuthenticated() {
+      this.isAuthenticated = true;
     },
-    selectDocument(document) {
-      this.selectedDocument = document;
+    refreshDocuments(newDoc) {
+      this.$refs.docList.fetchDocuments(); // Refresh document list
+    },
+    logout() {
+      // Remove the token from localStorage and reset the authentication flag
+      localStorage.removeItem('authToken');
+      this.isAuthenticated = false;
     },
   },
 };
 </script>
 
-<style scoped>
-ul {
-  list-style-type: none;
-  padding: 0;
+<style>
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  padding: 20px;
 }
-li {
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+h1 {
+  text-align: center;
+}
+button {
+  padding: 8px 16px;
   cursor: pointer;
-  padding: 8px;
-  border-bottom: 1px solid #ccc;
-}
-li:hover {
-  background-color: #f0f0f0;
-}
-.document-details {
-  margin-top: 20px;
-  border-top: 1px solid #ccc;
-  padding-top: 10px;
 }
 </style>
