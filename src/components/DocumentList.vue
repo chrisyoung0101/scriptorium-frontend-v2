@@ -35,6 +35,7 @@
         <p><strong>Name:</strong> {{ selectedDocument.name }}</p>
         <p><strong>Type:</strong> {{ selectedDocument.type }}</p>
         <p><strong>Content:</strong></p>
+        <!-- the markdown-rendered HTML will now be left-aligned -->
         <div v-html="formattedContent"></div>
         <p v-if="selectedDocument.parentId">
           <strong>Parent ID:</strong> {{ selectedDocument.parentId }}
@@ -84,12 +85,6 @@ export default {
       this.selectedDocument = document;
     },
 
-    /**
-     * 1) Ask for confirmation.
-     * 2) DELETE on OK, verify 204.
-     * 3) Remove from list, clear detail view.
-     * 4) Show alert confirming deletion.
-     */
     async deleteDocument(id, name) {
       const confirmed = window.confirm(`Are you sure you want to delete “${name}”?`);
       if (!confirmed) return;
@@ -97,13 +92,10 @@ export default {
       try {
         const response = await api.delete(`/documents/${id}`);
         if (response.status === 204) {
-          // remove item from local list
           this.documents = this.documents.filter(doc => doc.id !== id);
-          // clear detail view if needed
           if (this.selectedDocument?.id === id) {
             this.selectedDocument = null;
           }
-          // <-- Popup confirmation
           window.alert(`Deleted “${name}” successfully.`);
         } else {
           throw new Error(`Unexpected status: ${response.status}`);
@@ -172,6 +164,10 @@ ul {
   height: 200px;
   object-fit: cover;
   border-radius: 8px;
+}
+/* <- new rule to force left alignment */
+.magazine-content {
+  text-align: left;
 }
 .magazine-content p {
   margin-bottom: 1em;
