@@ -7,11 +7,17 @@
         v-for="document in documents"
         :key="document.id"
         @click="selectDocument(document)"
+        class="document-item"
       >
-        <strong>{{ document.title }}</strong>
-        – {{ document.name }} ({{ document.type }})
+        <div class="document-info">
+          <strong>{{ document.title }}</strong>
+          – {{ document.name }} ({{ document.type }})
+        </div>
         <!-- DELETE BUTTON -->
-        <button class="delete-btn" @click.stop="deleteDocument(document.id)">
+        <button
+          class="delete-btn"
+          @click.stop="deleteDocument(document.id, document.name)"
+        >
           Delete
         </button>
       </li>
@@ -72,19 +78,35 @@ export default {
         console.error('Error fetching documents:', error);
       }
     },
+
     selectDocument(document) {
       document.randomImageUrl =
         `https://picsum.photos/300/200?random=${Math.floor(Math.random() * 1000)}`;
       this.selectedDocument = document;
     },
-    async deleteDocument(id) {
+
+    /**
+     * Ask for confirmation, delete on OK, verify 204,
+     * then remove from list and clear detail view if needed.
+     */
+    async deleteDocument(id, name) {
+      const prompt = `Are you sure you want to delete “${name}”?`;
+      if (!window.confirm(prompt)) {
+        return;
+      }
+
       try {
-        await api.delete(`/documents/${id}`);
-        // reload the list
-        this.fetchDocuments();
-        // clear detail view if it was the deleted one
-        if (this.selectedDocument?.id === id) {
-          this.selectedDocument = null;
+        const response = await api.delete(`/documents/${id}`);
+        // verify 204 No Content
+        if (response.status === 204) {
+          // remove it locally so the UI updates immediately
+          this.documents = this.documents.filter(doc => doc.id !== id);
+          // if the deleted doc was open, clear the detail pane
+          if (this.selectedDocument?.id === id) {
+            this.selectedDocument = null;
+          }
+        } else {
+          throw new Error(`Unexpected status code: ${response.status}`);
         }
       } catch (error) {
         console.error('Error deleting document:', error);
@@ -100,16 +122,19 @@ ul {
   list-style-type: none;
   padding: 0;
 }
-li {
-  cursor: pointer;
+.document-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 8px;
   border-bottom: 1px solid #ccc;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  cursor: pointer;
 }
-li:hover {
-  background-color: #f0f0f0;
+.document-item:hover {
+  background-color: #f9f9f9;
+}
+.document-info {
+  flex: 1;
 }
 .delete-btn {
   background-color: #c0392b;
@@ -123,6 +148,7 @@ li:hover {
 .delete-btn:hover {
   background-color: #e74c3c;
 }
+
 .document-details {
   margin-top: 20px;
   border-top: 1px solid #ccc;
