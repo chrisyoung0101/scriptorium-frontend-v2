@@ -3,24 +3,25 @@
   <div>
     <h1>Documents</h1>
     <ul>
-      <li 
-        v-for="document in documents" 
-        :key="document.id" 
+      <li
+        v-for="document in documents"
+        :key="document.id"
         @click="selectDocument(document)"
       >
-        <strong>{{ document.title }}</strong> - {{ document.name }} ({{ document.type }})
+        <strong>{{ document.title }}</strong>
+        – {{ document.name }} ({{ document.type }})
+        <!-- DELETE BUTTON -->
+        <button class="delete-btn" @click.stop="deleteDocument(document.id)">
+          Delete
+        </button>
       </li>
     </ul>
 
-    <div 
-      v-if="selectedDocument" 
-      class="document-details magazine-style"
-    >
+    <div v-if="selectedDocument" class="document-details magazine-style">
       <div class="magazine-header">
-        <!-- Random Side Image -->
-        <img 
-          :src="selectedDocument.randomImageUrl" 
-          alt="Random" 
+        <img
+          :src="selectedDocument.randomImageUrl"
+          alt="Random"
           class="magazine-image"
         />
         <h2>{{ selectedDocument.title }}</h2>
@@ -29,9 +30,7 @@
         <p><strong>Name:</strong> {{ selectedDocument.name }}</p>
         <p><strong>Type:</strong> {{ selectedDocument.type }}</p>
         <p><strong>Content:</strong></p>
-        <!-- Render Markdown-formatted content -->
         <div v-html="formattedContent"></div>
-        
         <p v-if="selectedDocument.parentId">
           <strong>Parent ID:</strong> {{ selectedDocument.parentId }}
         </p>
@@ -61,7 +60,6 @@ export default {
       if (!this.selectedDocument || !this.selectedDocument.content) {
         return '<p>No content available.</p>';
       }
-      // Convert Markdown to HTML
       return marked(this.selectedDocument.content);
     },
   },
@@ -75,10 +73,23 @@ export default {
       }
     },
     selectDocument(document) {
-      // Attach a random image URL to the selected document
-      // Using Lorem Picsum with a random query param ensures variety
-      document.randomImageUrl = `https://picsum.photos/300/200?random=${Math.floor(Math.random() * 1000)}`;
+      document.randomImageUrl =
+        `https://picsum.photos/300/200?random=${Math.floor(Math.random() * 1000)}`;
       this.selectedDocument = document;
+    },
+    async deleteDocument(id) {
+      try {
+        await api.delete(`/documents/${id}`);
+        // reload the list
+        this.fetchDocuments();
+        // clear detail view if it was the deleted one
+        if (this.selectedDocument?.id === id) {
+          this.selectedDocument = null;
+        }
+      } catch (error) {
+        console.error('Error deleting document:', error);
+        alert('Failed to delete document.');
+      }
     },
   },
 };
@@ -93,17 +104,30 @@ li {
   cursor: pointer;
   padding: 8px;
   border-bottom: 1px solid #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 li:hover {
   background-color: #f0f0f0;
+}
+.delete-btn {
+  background-color: #c0392b;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+.delete-btn:hover {
+  background-color: #e74c3c;
 }
 .document-details {
   margin-top: 20px;
   border-top: 1px solid #ccc;
   padding-top: 10px;
 }
-
-/* Example "magazine style" layout */
 .magazine-style {
   background-color: #333;
   color: #fff;
@@ -111,44 +135,21 @@ li:hover {
   border-radius: 8px;
   font-family: 'Georgia', serif;
   line-height: 1.6;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
 }
-
 .magazine-header {
   display: flex;
   align-items: center;
   gap: 20px;
 }
-
-.magazine-header h2 {
-  margin: 0;
-  font-size: 1.8em;
-  font-weight: bold;
-}
-
 .magazine-image {
   width: 300px;
   height: 200px;
   object-fit: cover;
   border-radius: 8px;
 }
-
 .magazine-content p {
   margin-bottom: 1em;
 }
-
-.magazine-content h1,
-.magazine-content h2,
-.magazine-content h3,
-.magazine-content h4 {
-  font-weight: bold;
-  margin-top: 1em;
-  color: #ffd700; /* Example highlight color */
-}
-
-/* Button styling */
 button {
   margin-top: 20px;
   background-color: #555;
