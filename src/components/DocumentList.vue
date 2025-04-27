@@ -13,7 +13,6 @@
           <strong>{{ document.title }}</strong>
           – {{ document.name }} ({{ document.type }})
         </div>
-        <!-- DELETE BUTTON -->
         <button
           class="delete-btn"
           @click.stop="deleteDocument(document.id, document.name)"
@@ -86,27 +85,28 @@ export default {
     },
 
     /**
-     * Ask for confirmation, delete on OK, verify 204,
-     * then remove from list and clear detail view if needed.
+     * 1) Ask for confirmation.
+     * 2) DELETE on OK, verify 204.
+     * 3) Remove from list, clear detail view.
+     * 4) Show alert confirming deletion.
      */
     async deleteDocument(id, name) {
-      const prompt = `Are you sure you want to delete “${name}”?`;
-      if (!window.confirm(prompt)) {
-        return;
-      }
+      const confirmed = window.confirm(`Are you sure you want to delete “${name}”?`);
+      if (!confirmed) return;
 
       try {
         const response = await api.delete(`/documents/${id}`);
-        // verify 204 No Content
         if (response.status === 204) {
-          // remove it locally so the UI updates immediately
+          // remove item from local list
           this.documents = this.documents.filter(doc => doc.id !== id);
-          // if the deleted doc was open, clear the detail pane
+          // clear detail view if needed
           if (this.selectedDocument?.id === id) {
             this.selectedDocument = null;
           }
+          // <-- Popup confirmation
+          window.alert(`Deleted “${name}” successfully.`);
         } else {
-          throw new Error(`Unexpected status code: ${response.status}`);
+          throw new Error(`Unexpected status: ${response.status}`);
         }
       } catch (error) {
         console.error('Error deleting document:', error);
